@@ -1,5 +1,9 @@
 pandas
 numpy
-scikit-learn
+scikit-learn==1.9.1  # the saved model was trained with this version
 joblib
+requests
+holidays
 streamlit
+pydeck
+pytest
