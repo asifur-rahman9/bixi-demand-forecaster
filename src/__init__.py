@@ -1,0 +1,6 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "data"
+MODEL_DIR = ROOT / "models"
+TZ = "America/Montreal"
