@@ -1,180 +1,85 @@
-**Bike Share Demand Predictor**
-===============================
+# BIXI Station Monitor
 
-A simple pipeline to train and serve a bike-share demand model with a Streamlit dashboard.
+A Streamlit app that shows live bike availability for Montreal's BIXI bike-share stations, and forecasts how many trips each busy station will get per hour based on the weather.
 
-**Description**
----------------
+![Live map of BIXI stations](docs/media/live-map.jpg)
 
-This repository provides a full, end-to-end workflow for predicting bike-share demand:
+- **Live:** every station from BIXI's public feed on a map, colored by how full it is, plus a list of stations that are nearly empty or nearly full.
+- **Forecast:** departures and arrivals for the next 48 hours for a station, using the weather forecast.
+- **Model:** how accurate the model is, and actual vs predicted trips for the test period.
 
-1.  **Data Loading & Feature Engineering**
-    
-2.  **Model Training (regression) & Saving**
-    
-3.  **Single‐Row Prediction Logic**
-    
-4.  **Interactive Streamlit Dashboard**
-    
-5.  **Unit Tests for Data Processing & Prediction**
-    
+| Forecast | Model |
+|---|---|
+| ![Forecast tab](docs/media/forecast.jpg) | ![Model tab](docs/media/model.jpg) |
 
-**Project Structure**
----------------------
-```bash
-bike_share_project/
-├─ data/                      # Sample CSV files (e.g., bixi_sample.csv)
-├─ models/                    # Saved model artifacts (e.g., bike_demand_model.pkl)
-├─ requirements.txt           # Python dependencies
-├─ src/
-│  ├─ data_processing.py      # load_data() and feature_engineering()
-│  ├─ train.py                # Train & save a regression model
-│  ├─ predict.py              # Load model & make single-row predictions
-│  └─ app.py                  # Streamlit app for interactive forecasts
-├─ tests/
-│  ├─ test_data_processing.py # Unit tests for data processing
-│  └─ test_predict.py         # Unit tests for prediction logic
-└─ README.md                  # This file
-```
+## Results
 
-**Features**
-------------
+I trained on real 2025 BIXI trip data: the 50 busiest stations, hourly from April 15 to November 14 (256,800 station-hours), joined with hourly weather. I tested on the last 4 weeks, which the model didn't see during training:
 
-### **Data Loading & Feature Engineering**
+| Target | This model (MAE) | Same hour last week (MAE) |
+|---|---:|---:|
+| Departures | **2.74** | 4.03 |
+| Arrivals | **2.63** | 3.83 |
 
-*   load\_data() reads a CSV into a pandas DataFrame.
-    
-*   feature\_engineering() creates time‐based features (hour, day, month, etc.) plus any station or weather metadata.
-    
+So the model's average error is about 32% lower than just guessing last week's number. A station gets about 6 trips per hour on average.
 
-### **Model Training**
-
-*   train.py trains a scikit‐learn regression model (e.g., RandomForestRegressor or LinearRegression).
-    
-*   Saves the trained model as models/bike\_demand\_model.pkl.
-    
-
-### **Single-Row Prediction**
-
-*   predict.py loads the saved model and returns demand for a single record supplied as a dictionary or one‐row DataFrame.
-    
-
-### **Interactive Streamlit Dashboard**
-
-*   app.py provides a UI to input date/time, weather, and station parameters to see real‐time demand estimates.
-    
-*   Accessible at **http://localhost:8501** once launched.
-    
-
-### **Automated Testing**
-
-*   tests/test\_data\_processing.py validates data loading and engineered features.
-    
-*   tests/test\_predict.py checks that the prediction pipeline returns expected results.
-    
-
-**Requirements**
-----------------
-
-*   **Python 3.8+**
-    
-*   Core Python packages listed in requirements.txt (pandas, numpy, scikit‐learn, joblib, streamlit)
-    
-
-**Installation**
-----------------
-
-1.  **Clone the repository**
-    
-```bash 
-git clone https://github.com/your-username/bike_share_project.git  cd bike_share_project
-```
-
-2.  **(Optional) Create & activate a virtual environment**
-    
-```bash
-python3 -m venv venv  source venv/bin/activate      # macOS / Linux  # .\venv\Scripts\activate     # Windows   `
-```
-
-2.  **Install dependencies**
+## Run it
 
 ```bash
-pip install --upgrade pip  pip install -r requirements.txt   `
+pip install -r requirements.txt
+streamlit run app.py        # http://localhost:8501
 ```
 
-**Usage**
----------
-
-### **1 · Train the Model**
+Or with Docker:
 
 ```bash
-python3 src/train.py data/bixi_sample.csv models/bike_demand_model.pkl   `
-``` 
-
-*   *   data/bixi\_sample.csv – path to the CSV training data
-        
-    *   models/bike\_demand\_model.pkl – output path for the trained model artifact
-        
-
-### **2 · Run Unit Tests**
-
-```bash
-pytest   `
+docker build -t bixi-monitor .
+docker run -p 8501:8501 bixi-monitor
 ```
 
-### **3 · Launch the Dashboard**
+The trained model and the dataset are in the repo, so the app works right after cloning.
+
+## Rebuild the data and retrain
 
 ```bash
-streamlit run src/app.py   `
+# 1. Download the 2025 trip file from https://bixi.com/en/open-data
+# 2. Count trips per station per hour and add the weather
+python scripts/build_dataset.py path/to/DonneesOuvertes2025_....zip
+# 3. Train and test the model
+python -m src.train
 ```
 
-*   Opens **http://localhost:8501** where you can interactively explore demand predictions.
-    
-
-**Example**
------------
-
-1.  **Train**
-    
+## Tests
 
 ```bash
-python3 src/train.py data/bixi_sample.csv models/bike_demand_model.pkl   `
+python -m pytest
 ```
 
-2.  **Start Dashboard**
-    
-```bash
-streamlit run src/app.py   `
+8 tests that don't need the internet: the features, the train/test split, the baseline, training and predicting, and reading the BIXI and weather data (using saved sample responses). GitHub Actions runs them on every push.
+
+## Project structure
+
+```
+app.py                     the Streamlit app
+src/features.py            builds the model inputs (used by training, prediction and the app)
+src/data.py                loads the dataset, gets weather from Open-Meteo
+src/live.py                gets live station data from BIXI
+src/train.py               train/test split, baseline, training
+src/predict.py             loads the model and makes forecasts
+scripts/build_dataset.py   raw BIXI trips -> data/hourly_demand.csv.gz
+models/                    saved model and results
 ```
 
-2.  *   Select a Date/Time (e.g., 2025-06-01 08:00)
-        
-    *   Enter Temperature (°C), Humidity (%), Wind Speed (km/h), and Station ID
-        
-    *   Click **Predict** to view the forecasted bike demand
-        
+## Data sources
 
-**Contributing**
-----------------
+- Trips: [BIXI open data](https://bixi.com/en/open-data)
+- Live availability: [BIXI GBFS feed](https://gbfs.velobixi.com/gbfs/gbfs.json)
+- Weather: [Open-Meteo](https://open-meteo.com/)
 
-1.  **Fork** the repository and create your feature branch:
-    
-```bash
-git checkout -b feature/my-new-feature   `
-```
+## First version
 
-2.  **Make changes** and add tests if applicable.
-    
-3.  **Commit** with a clear message:
-    
-```bash
-git commit -m "Add my new feature"   `
-```
+The first version was a single prediction form trained on a small made-up CSV:
 
-2.  **Push** your branch and open a Pull Request.
-    
+![First version](docs/media/before-v1.jpg)
 
-**License**
------------
-
-Distributed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+This version uses real trip data, tests the model properly on later dates, and adds live availability.
