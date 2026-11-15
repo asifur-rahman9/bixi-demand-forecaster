@@ -1,0 +1,7 @@
+{"last_updated": 1794661948, "ttl": 10, "data": {"stations": [
+  {"station_id": "1", "name": "Drummond / de Maisonneuve", "short_name": "6001", "lat": 45.4996545, "lon": -73.5763353, "capacity": 23},
+  {"station_id": "2", "name": "Laurier / St-Denis", "short_name": "6002", "lat": 45.5271540, "lon": -73.5894392, "capacity": 37},
+  {"station_id": "3", "name": "Berri / Cherrier", "short_name": "6003", "lat": 45.5193600, "lon": -73.5694000, "capacity": 31},
+  {"station_id": "4", "name": "Rachel / Papineau", "short_name": "6004", "lat": 45.5379000, "lon": -73.5701000, "capacity": 19},
+  {"station_id": "5", "name": "Placeholder", "short_name": "0000", "lat": 0.0, "lon": 0.0, "capacity": 0}
+]}}
